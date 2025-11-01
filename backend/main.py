@@ -27,6 +27,8 @@ sys.modules["cgi"].parse_header = _fake_parse_header
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import feedparser
+import json
+from pathlib import Path
 from typing import List, Dict
 from datetime import datetime
 
@@ -45,10 +47,21 @@ app.add_middleware(
 )
 
 # Predefined Instagram RSS feeds
-INSTAGRAM_FEEDS = {
-    "okstate": "https://rss.app/feeds/NBgetWsYeAxjiJ7N.xml",
-    "releaseradar": "https://rss.app/feeds/pwgOKTLwxlfH6MQV.xml",
-}
+def load_feeds() -> Dict[str, str]:
+    """Load Instagram RSS feeds from feeds.json."""
+    feeds_path = Path(__file__).parent / "frontend" / "data" / "feeds.json"
+    try:
+        with open(feeds_path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Fallback to hardcoded feeds if file not found
+        print(f"Warning: feeds.json not found at {feeds_path}, using fallback feeds")
+        return {
+            "okstate": "https://rss.app/feeds/NBgetWsYeAxjiJ7N.xml",
+            "releaseradar": "https://rss.app/feeds/pwgOKTLwxlfH6MQV.xml",
+        }
+
+INSTAGRAM_FEEDS = load_feeds()
 
 # -------------------------------------------------------------------
 # Routes
