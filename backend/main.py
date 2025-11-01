@@ -29,6 +29,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import feedparser
 from typing import List, Dict
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # -------------------------------------------------------------------
 # App Configuration
