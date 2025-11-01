@@ -1,9 +1,4 @@
-import Parser from 'rss-parser'
 import feedsData from '@/data/feeds.json'
-
-const feeds = feedsData as Record<string, string>
-
-const parser = new Parser()
 
 export interface Post {
   title: string;
@@ -14,23 +9,25 @@ export interface Post {
   contentSnippet?: string;
 }
 
-// List of accounts you want to fetch from
-const accounts = ["okstate", "releaseradar"];
+const accounts = Object.keys(feedsData);
 
 export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
   const allPosts: Post[] = [];
+  const API_URL = 'http://127.0.0.1:8000';
 
   for (const account of accounts) {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/posts?username=${account}`);
+      const res = await fetch(`${API_URL}/posts?username=${account}`, {
+        cache: 'no-store',
+      });
+
       if (!res.ok) {
-        console.error(`Failed to fetch posts for ${account}: ${res.statusText}`);
+        console.error(`Failed to fetch posts for ${account}: ${res.status} ${res.statusText}`);
         continue;
       }
 
       const posts = await res.json();
 
-      // Map backend posts to frontend Post interface
       posts.forEach((p: any) => {
         allPosts.push({
           title: p.title || "Untitled Post",
@@ -46,7 +43,6 @@ export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
     }
   }
 
-  // Sort all posts newest first
   allPosts.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
   return allPosts;
@@ -55,5 +51,3 @@ export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
 export function getAccountNames(): string[] {
   return accounts;
 }
-
-
