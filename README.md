@@ -1,23 +1,48 @@
 # Stillwater Pulse
 
-A Next.js 16 application that displays the latest Instagram posts from multiple accounts using RSS feeds. Posts are fetched server-side, sorted chronologically, and displayed using Instagram's official embed script.
+Stillwater Pulse is a Next.js 16 application that aggregates and displays the latest Instagram posts from multiple accounts using RSS feeds. Posts are fetched server-side, sorted chronologically, and rendered using Instagram’s official embed script.
 
-## Project Structure
+# Features
 
-```
-stillwater-pulse/
-├── frontend/              # Next.js 16 application
-│   ├── app/               # App Router directory
-│   ├── components/        # React components
-│   ├── lib/               # RSS parsing utilities
-│   └── data/              # Configuration files
-│       └── feeds.json     # Instagram account RSS feeds
-└── backend/               # (Optional) FastAPI backend (not used in main flow)
-```
+- Server-side RSS Fetching: Fetches posts from multiple Instagram accounts at request time using RSS feeds.
+- Chronological Sorting: Posts are sorted by publication date (newest first).
+- Latest 5 per Account: Displays the 5 most recent posts from each account.
+- Instagram Embeds: Uses Instagram’s official embed.js for proper rendering.
+- Real-time Updates: Fresh posts on every page load.
+- Responsive UI: Built with TailwindCSS for a clean, mobile-first design.
 
 ## Setup Instructions
 
-### Installation
+### Installation Backend
+
+1. Create a virtual environment (recommended):
+
+```bash
+# On Windows
+python -m venv venv
+venv\Scripts\activate
+
+# On macOS / Linux
+python3 -m venv venv
+source venv/bin/activate
+
+```
+
+2. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Run the server:
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+The API will be available at `http://localhost:8000`
+
+
+### Installation Frontend
 
 1. Navigate to the frontend directory:
 ```bash
@@ -34,6 +59,16 @@ npm install
 npm run dev
 ```
 
+## API Endpoints
+
+- `GET /` - Health check
+- `GET /accounts` - Returns list of available usernames
+- `GET /posts?username={username}` - Returns latest 5 posts for the given username
+
+
+## Deactivate virtual environment when done
+deactivate
+
 The app will be available at `http://localhost:3000`
 
 ## Configuration
@@ -47,20 +82,3 @@ Update the RSS feed URLs in `frontend/data/feeds.json`:
   "osuathletics": "https://rss.app/feeds/osuathletics.xml"
 }
 ```
-
-## Features
-
-- **Server-side RSS Fetching:** Posts are fetched at request time using Next.js server components
-- **Chronological Sorting:** All posts are sorted by publication date (newest first)
-- **Latest 5 per Account:** Displays the 5 most recent posts from each configured account
-- **Instagram Embeds:** Uses Instagram's official embed script for proper post rendering
-- **Real-time Updates:** Fresh data on every page load
-
-## Tech Stack
-
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript
-- **Styling:** TailwindCSS
-- **RSS Parsing:** rss-parser
-- **Instagram Embeds:** Official Instagram embed.js script
-

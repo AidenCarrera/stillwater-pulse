@@ -2,7 +2,7 @@
 # Stillwater Pulse API — Backend
 # -------------------------------------------------------------------
 
-# ✅ Temporary fix for Python 3.13 (feedparser requires deprecated `cgi`)
+# Temporary fix for Python 3.13 (feedparser requires deprecated `cgi`)
 import sys, types
 if "cgi" not in sys.modules:
     sys.modules["cgi"] = types.ModuleType("cgi")
