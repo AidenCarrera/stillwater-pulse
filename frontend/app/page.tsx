@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { fetchPostsFromAllAccounts, getAccountNames } from '@/lib/rss';
 import PostGrid from '@/components/PostGrid';
+import ChatWindow from '@/components/ChatWindow';
 import Script from 'next/script';
 
 export default function Home() {
@@ -118,6 +119,9 @@ export default function Home() {
             </p>
           </div>
         </footer>
+
+        {/* Chat Window - Floating on right side */}
+        <ChatWindow posts={posts} />
       </div>
     </>
   );

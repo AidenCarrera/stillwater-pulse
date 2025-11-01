@@ -65,10 +65,6 @@ npm run dev
 - `GET /accounts` - Returns list of available usernames
 - `GET /posts?username={username}` - Returns latest 5 posts for the given username
 
-
-## Deactivate virtual environment when done
-deactivate
-
 The app will be available at `http://localhost:3000`
 
 ## Configuration
