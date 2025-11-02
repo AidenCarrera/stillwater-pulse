@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageCircle, Sparkles } from 'lucide-react';
+import type { Post } from '@/lib/rss';
 
 interface Message {
   id: string;
@@ -11,7 +12,7 @@ interface Message {
 }
 
 interface ChatWindowProps {
-  posts?: any[]; // Your posts data - backend will handle this
+  posts?: Post[];
 }
 
 export default function ChatWindow({ posts = [] }: ChatWindowProps) {
@@ -57,25 +58,27 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call to your backend
-      // Example:
-      // const response = await fetch('/api/chat', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ 
-      //     message: userMessage.content,
-      //     posts: posts // Backend will handle post data
-      //   })
-      // });
-      // const data = await response.json();
+      // Call the backend API
+      const API_URL = 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: userMessage.content,
+          posts: posts
+        })
+      });
 
-      // Simulated response for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'This is where the Gemini response will appear. Your backend friend should replace the fetch call in handleSendMessage() with the actual API endpoint.',
+        content: data.response,
         timestamp: new Date()
       };
 
