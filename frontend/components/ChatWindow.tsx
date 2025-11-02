@@ -15,6 +15,98 @@ interface ChatWindowProps {
   posts?: Post[];
 }
 
+/**
+ * Convert basic markdown formatting to React elements
+ * Currently supports: **bold** and *italic*
+ */
+function renderMarkdown(text: string): JSX.Element {
+  // Split by line breaks to preserve them
+  const lines = text.split('\n');
+
+  return (
+    <>
+      {lines.map((line, lineIndex) => {
+        // Convert **text** to bold and *text* to italic
+        const parts: (string | JSX.Element)[] = [];
+        let lastIndex = 0;
+        let key = 0;
+
+        // Match **bold** first, then *italic*
+        // The (.+?) group captures the content inside the markers.
+        // We will trim this captured content later.
+        const boldRegex = /\*\*(.+?)\*\*/g;
+        const italicRegex = /\*(.+?)\*/g;
+
+        let match;
+        const matches: Array<{ start: number; end: number; type: 'bold' | 'italic'; text: string }> = [];
+
+        // Find all bold matches
+        while ((match = boldRegex.exec(line)) !== null) {
+          matches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            type: 'bold',
+            // FIX: Trim whitespace from the captured content (match[1])
+            text: match[1].trim() 
+          });
+        }
+
+        // Find all italic matches (that aren't part of bold)
+        while ((match = italicRegex.exec(line)) !== null) {
+          // Skip if this is part of a bold match
+          const isInBold = matches.some(m =>
+            match!.index >= m.start && match!.index < m.end
+          );
+          if (!isInBold) {
+            matches.push({
+              start: match.index,
+              end: match.index + match[0].length,
+              type: 'italic',
+              // FIX: Trim whitespace from the captured content (match[1])
+              text: match[1].trim()
+            });
+          }
+        }
+
+        // Sort matches by position
+        matches.sort((a, b) => a.start - b.start);
+
+        // If no matches found, just render the line as-is
+        if (matches.length === 0) {
+          parts.push(line);
+        } else {
+          // Build the parts array from matches
+          for (const m of matches) {
+            // Add text before match
+            if (m.start > lastIndex) {
+              parts.push(line.substring(lastIndex, m.start));
+            }
+            // Add formatted text
+            if (m.type === 'bold') {
+              parts.push(<strong key={key++}>{m.text}</strong>);
+            } else {
+              parts.push(<em key={key++}>{m.text}</em>);
+            }
+            lastIndex = m.end;
+          }
+
+          // Add remaining text after last match
+          if (lastIndex < line.length) {
+            parts.push(line.substring(lastIndex));
+          }
+        }
+
+        return (
+          <span key={lineIndex}>
+            {parts}
+            {lineIndex < lines.length - 1 && <br />}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -186,7 +278,13 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                           : 'bg-white border border-gray-200 text-gray-800'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      {message.role === 'assistant' ? (
+                        <div className="text-sm whitespace-pre-wrap">
+                          {renderMarkdown(message.content)}
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      )}
                       <p className={`text-xs mt-1 ${
                         message.role === 'user' ? 'text-primary-100' : 'text-gray-500'
                       }`}>
