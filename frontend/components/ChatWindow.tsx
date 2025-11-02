@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, X, MessageCircle, Sparkles } from 'lucide-react';
+import { Send, X, MessageCircle, Sparkles, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import type { Post } from '@/lib/rss';
 
 interface Message {
@@ -112,8 +112,11 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const suggestedPrompts = [
     "What events are happening this week?",
@@ -134,6 +137,16 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       inputRef.current?.focus();
     }
   }, [isOpen]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -187,6 +200,72 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePlayAudio = async (messageId: string, text: string) => {
+    // If already playing this message, stop it
+    if (playingMessageId === messageId) {
+      stopAudio();
+      return;
+    }
+
+    // Stop any currently playing audio
+    stopAudio();
+
+    setLoadingAudioId(messageId);
+
+    try {
+      const API_URL = 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_URL}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: text,
+          voice_id: "21m00Tcm4TlvDq8ikWAM" // Rachel voice (clear, friendly)
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Get audio blob
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Create and play audio
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setPlayingMessageId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        console.error('Error playing audio');
+        setPlayingMessageId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+      setPlayingMessageId(messageId);
+      
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      alert('Failed to generate audio. Make sure the backend is running and ELEVENLABS_API_KEY is set.');
+    } finally {
+      setLoadingAudioId(null);
+    }
+  };
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setPlayingMessageId(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -278,13 +357,41 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                           : 'bg-white border border-gray-200 text-gray-800'
                       }`}
                     >
-                      {message.role === 'assistant' ? (
-                        <div className="text-sm whitespace-pre-wrap">
-                          {renderMarkdown(message.content)}
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1">
+                          {message.role === 'assistant' ? (
+                            <div className="text-sm whitespace-pre-wrap">
+                              {renderMarkdown(message.content)}
+                            </div>
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      )}
+                        
+                        {/* Audio button for assistant messages */}
+                        {message.role === 'assistant' && (
+                          <button
+                            onClick={() => handlePlayAudio(message.id, message.content)}
+                            disabled={loadingAudioId === message.id}
+                            className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
+                              playingMessageId === message.id
+                                ? 'bg-primary-100 text-primary-600 hover:bg-primary-200'
+                                : 'hover:bg-gray-100 text-gray-600'
+                            }`}
+                            aria-label={playingMessageId === message.id ? 'Stop audio' : 'Play audio'}
+                            title={playingMessageId === message.id ? 'Stop audio' : 'Play audio'}
+                          >
+                            {loadingAudioId === message.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : playingMessageId === message.id ? (
+                              <VolumeX className="w-4 h-4" />
+                            ) : (
+                              <Volume2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      
                       <p className={`text-xs mt-1 ${
                         message.role === 'user' ? 'text-primary-100' : 'text-gray-500'
                       }`}>
