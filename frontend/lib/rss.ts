@@ -11,9 +11,11 @@ export interface Post {
 
 const accounts = Object.keys(feedsData);
 
+// Use environment variable for backend API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
 export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
   const allPosts: Post[] = [];
-  const API_URL = 'http://127.0.0.1:8000';
 
   for (const account of accounts) {
     try {
