@@ -221,7 +221,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           text: text,
-          voice_id: "21m00Tcm4TlvDq8ikWAM" // Rachel voice (clear, friendly)
+          voice_id: "wBXNqKUATyqu0RtYt25i" // Adam voice (tiktok)
         })
       });
 
