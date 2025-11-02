@@ -10,12 +10,14 @@ import PostGrid from '@/components/PostGrid';
 import ChatWindow from '@/components/ChatWindow';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
+import type { Post } from '@/lib/rss';
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [accounts, setAccounts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
 
   // Use Instagram embed hook
   useInstagramEmbed([posts]);
@@ -39,6 +41,16 @@ export default function Home() {
     loadData();
   }, []);
 
+  // Filter posts based on selected account
+  const filteredPosts = selectedAccount
+    ? posts.filter(post => post.account === selectedAccount)
+    : posts;
+
+  // Handle account selection
+  const handleAccountClick = (account: string) => {
+    setSelectedAccount(selectedAccount === account ? null : account);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -53,10 +65,14 @@ export default function Home() {
         {!loading && !error && (
           <>
             {/* Account Badges */}
-            <AccountBadges accounts={accounts} />
+            <AccountBadges 
+              accounts={accounts} 
+              selectedAccount={selectedAccount}
+              onAccountClick={handleAccountClick}
+            />
 
             {/* Posts Grid */}
-            <PostGrid posts={posts} />
+            <PostGrid posts={filteredPosts} selectedAccount={selectedAccount} />
           </>
         )}
       </main>
