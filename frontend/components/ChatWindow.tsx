@@ -142,9 +142,6 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
         
         if (response.ok) {
           const data = await response.json();
-          if (process.env.NODE_ENV === 'development') {
-            console.log('All available voices:', data.voices);
-          }
           // ADD FILTERING HERE - Define which voices to show
           const allowedVoices = [
             "nPczCjzI2devNBz1zQrb", // Brian
@@ -163,9 +160,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
           setVoices(filteredVoices); // Use filtered instead of data.voices
         }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching voices:', error);
-        }
+        // Error fetching voices - silently continue
       } finally {
         setLoadingVoices(false);
       }
@@ -236,9 +231,6 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error sending message:', error);
-      }
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -287,9 +279,6 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       };
 
       audio.onerror = () => {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error playing audio');
-        }
         setPlayingMessageId(null);
         URL.revokeObjectURL(audioUrl);
       };
@@ -298,10 +287,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       setPlayingMessageId(messageId);
       
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error playing audio:', error);
-      }
-      alert('Failed to generate audio. Make sure the backend is running and ELEVENLABS_API_KEY is set.');
+      alert('Failed to generate audio. Please try again later.');
     } finally {
       setLoadingAudioId(null);
     }

@@ -81,6 +81,7 @@ async def startup_event():
     logger.info(f"🚀 {settings.APP_TITLE} v{settings.API_VERSION}")
     logger.info(f"📍 Serving on {base_url}")
     logger.info(f"📖 API docs: {base_url}/docs")
+    logger.info(f"🌐 CORS Origins: {settings.CORS_ORIGINS}")  # ADD THIS LINE
     
     # Validate configuration
     try:
