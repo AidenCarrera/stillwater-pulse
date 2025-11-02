@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageCircle, Sparkles } from 'lucide-react';
+import type { Post } from '@/lib/rss';
 
 interface Message {
   id: string;
@@ -11,7 +12,7 @@ interface Message {
 }
 
 interface ChatWindowProps {
-  posts?: any[]; // Your posts data - backend will handle this
+  posts?: Post[];
 }
 
 export default function ChatWindow({ posts = [] }: ChatWindowProps) {
@@ -57,25 +58,27 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call to your backend
-      // Example:
-      // const response = await fetch('/api/chat', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ 
-      //     message: userMessage.content,
-      //     posts: posts // Backend will handle post data
-      //   })
-      // });
-      // const data = await response.json();
+      // Call the backend API
+      const API_URL = 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: userMessage.content,
+          posts: posts
+        })
+      });
 
-      // Simulated response for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'This is where the Gemini response will appear. Your backend friend should replace the fetch call in handleSendMessage() with the actual API endpoint.',
+        content: data.response,
         timestamp: new Date()
       };
 
@@ -85,7 +88,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: 'Sorry, I encountered an error connecting to the AI. Please make sure the backend is running.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -112,7 +115,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-orange-600 hover:bg-orange-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 z-50 flex items-center gap-2"
+          className="fixed bottom-6 right-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 z-50 flex items-center gap-2"
           aria-label="Open chat"
         >
           <MessageCircle className="w-6 h-6" />
@@ -122,19 +125,19 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
       {/* Chat window */}
       {isOpen && (
-        <div className="fixed right-0 top-0 h-screen w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200">
+        <div className="fixed right-0 top-0 h-screen w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-slide-in-right">
           {/* Header */}
-          <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
               <div>
                 <h2 className="font-semibold text-lg">Stillwater AI</h2>
-                <p className="text-xs text-orange-100">Ask about local posts</p>
+                <p className="text-xs text-primary-100">Ask about local posts</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="hover:bg-orange-700 rounded-full p-1 transition-colors"
+              className="hover:bg-primary-700 rounded-full p-1 transition-colors"
               aria-label="Close chat"
             >
               <X className="w-6 h-6" />
@@ -145,7 +148,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                <Sparkles className="w-12 h-12 text-orange-600 mb-4" />
+                <Sparkles className="w-12 h-12 text-primary-600 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   Ask me anything!
                 </h3>
@@ -162,7 +165,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                     <button
                       key={index}
                       onClick={() => handleSuggestedPrompt(prompt)}
-                      className="w-full text-left p-3 bg-white hover:bg-orange-50 border border-gray-200 hover:border-orange-300 rounded-lg text-sm text-gray-700 transition-all duration-200 hover:shadow-sm"
+                      className="w-full text-left p-3 bg-white hover:bg-primary-50 border border-gray-200 hover:border-primary-300 rounded-lg text-sm text-gray-700 transition-all duration-200 hover:shadow-sm"
                     >
                       {prompt}
                     </button>
@@ -174,18 +177,18 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                   >
                     <div
                       className={`max-w-[85%] rounded-lg p-3 ${
                         message.role === 'user'
-                          ? 'bg-orange-600 text-white'
+                          ? 'bg-primary-600 text-white'
                           : 'bg-white border border-gray-200 text-gray-800'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                       <p className={`text-xs mt-1 ${
-                        message.role === 'user' ? 'text-orange-100' : 'text-gray-500'
+                        message.role === 'user' ? 'text-primary-100' : 'text-gray-500'
                       }`}>
                         {message.timestamp.toLocaleTimeString([], { 
                           hour: '2-digit', 
@@ -196,7 +199,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                   </div>
                 ))}
                 {isLoading && (
-                  <div className="flex justify-start">
+                  <div className="flex justify-start animate-fade-in">
                     <div className="bg-white border border-gray-200 rounded-lg p-3">
                       <div className="flex gap-1">
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -220,14 +223,14 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about Stillwater posts..."
-                className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 rows={1}
                 disabled={isLoading}
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!input.trim() || isLoading}
-                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 transition-colors flex items-center justify-center"
+                className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 transition-colors flex items-center justify-center"
                 aria-label="Send message"
               >
                 <Send className="w-5 h-5" />
