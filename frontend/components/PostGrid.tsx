@@ -1,58 +1,23 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
-import type { Post } from '@/lib/rss'
+import { useInstagramEmbed } from '@/hooks/useInstagramEmbed';
+import PostCard from '@/components/PostCard';
+import type { Post } from '@/lib/rss';
 
 interface PostGridProps {
-  posts: Post[]
+  posts: Post[];
 }
 
 export default function PostGrid({ posts }: PostGridProps) {
-  // Load Instagram embed script
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://www.instagram.com/embed.js'
-    script.async = true
-    document.body.appendChild(script)
-
-    // Re-initialize embeds after script loads
-    script.onload = () => {
-      if (window.instgrm) {
-        window.instgrm.Embeds.process()
-      }
-    }
-
-    return () => {
-      // Cleanup
-      if (document.body.contains(script)) {
-        document.body.removeChild(script)
-      }
-    }
-  }, [])
-
-  // Process embeds when posts change or script loads
-  useEffect(() => {
-    const processEmbeds = () => {
-      if (window.instgrm) {
-        window.instgrm.Embeds.process()
-      }
-    }
-
-    // Process immediately if script is already loaded
-    processEmbeds()
-
-    // Also process after a short delay to ensure script is ready
-    const timeout = setTimeout(processEmbeds, 1000)
-
-    return () => clearTimeout(timeout)
-  }, [posts])
+  // Use custom hook to handle Instagram embeds
+  useInstagramEmbed([posts]);
 
   if (posts.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg shadow-md">
+      <div className="text-center py-12 bg-white rounded-lg shadow-card">
         <p className="text-gray-600">No posts available at this time</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -68,59 +33,13 @@ export default function PostGrid({ posts }: PostGridProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post, index) => (
-          <div
-            key={`${post.account}-${index}`}
-            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
-          >
-            {/* Instagram Post Embed */}
-            <div className="p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-indigo-600">
-                  @{post.account}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {new Date(post.pubDate).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-              
-            {/* Instagram Blockquote Embed */}
-            <div className="instagram-embed-wrapper">
-              <blockquote
-                className="instagram-media"
-                data-instgrm-captioned
-                data-instgrm-permalink={post.link}
-                data-instgrm-version="14"
-              >
-                <a
-                  href={post.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-500 hover:underline"
-                >
-                  Loading Instagram post...
-                </a>
-              </blockquote>
-            </div>
-            </div>
-          </div>
+          <PostCard 
+            key={`${post.account}-${index}`} 
+            post={post} 
+            index={index}
+          />
         ))}
       </div>
     </div>
-  )
+  );
 }
-
-// Extend Window interface for Instagram embed
-declare global {
-  interface Window {
-    instgrm?: {
-      Embeds: {
-        process: () => void
-      }
-    }
-  }
-}
-
