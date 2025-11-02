@@ -22,13 +22,18 @@ def _fake_parse_header(value):
 sys.modules["cgi"].parse_header = _fake_parse_header
 
 # -------------------------------------------------------------------
-# Imports 
+# Imports
 # -------------------------------------------------------------------
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import feedparser
+import json
+from pathlib import Path
 from typing import List, Dict
 from datetime import datetime
+import os
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -49,11 +54,40 @@ app.add_middleware(
 )
 
 # Predefined Instagram RSS feeds
-INSTAGRAM_FEEDS = {
-    "okstate": "https://rss.app/feeds/NBgetWsYeAxjiJ7N.xml",
-    "releaseradar": "https://rss.app/feeds/pwgOKTLwxlfH6MQV.xml",
-}
+def load_feeds() -> Dict[str, str]:
+    """Load Instagram RSS feeds from feeds.json."""
+    feeds_path = Path(__file__).parent / "frontend" / "data" / "feeds.json"
+    try:
+        with open(feeds_path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Fallback to hardcoded feeds if file not found
+        print(f"Warning: feeds.json not found at {feeds_path}, using fallback feeds")
+        return {
+            "okstate": "https://rss.app/feeds/NBgetWsYeAxjiJ7N.xml",
+            "releaseradar": "https://rss.app/feeds/pwgOKTLwxlfH6MQV.xml",
+        }
 
+INSTAGRAM_FEEDS = load_feeds()
+
+# -------------------------------------------------------------------
+# Gemini AI Configuration
+# -------------------------------------------------------------------
+
+# Global variable to cache the model
+_gemini_model = None
+
+def get_gemini_model():
+    """Initialize and return Gemini model instance (cached)."""
+    global _gemini_model
+    if _gemini_model is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is not set")
+        genai.configure(api_key=api_key)
+        # Use gemini-2.0-flash for reliable, fast responses
+        _gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+    return _gemini_model
 
 # -------------------------------------------------------------------
 # Routes
@@ -112,3 +146,86 @@ async def get_posts(username: str = Query(..., description="Instagram username")
 async def root():
     """Health check endpoint."""
     return {"message": "Stillwater Pulse API", "status": "running"}
+
+
+# -------------------------------------------------------------------
+# Chat Endpoint
+# -------------------------------------------------------------------
+
+class ChatRequest(BaseModel):
+    message: str
+    posts: List[Dict] = []
+
+class ChatResponse(BaseModel):
+    response: str
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """Chat endpoint using Gemini AI."""
+    try:
+        # Get Gemini model
+        model = get_gemini_model()
+        
+        # Build context from recent posts
+        posts_context = ""
+        if request.posts:
+            posts_context = "\n\nRecent Stillwater Instagram posts:\n"
+            for i, post in enumerate(request.posts[:10], 1):  # Limit to 10 most recent posts
+                title = post.get('title', 'Untitled')
+                account = post.get('account', 'Unknown')
+                snippet = post.get('contentSnippet', title)
+                posts_context += f"{i}. From @{account}: {title}\n   {snippet}\n"
+        
+        # Create system prompt for Stillwater-specific context
+        system_prompt = """You are a helpful AI assistant for Stillwater Pulse, a platform that aggregates Instagram posts from local Stillwater, Oklahoma organizations and businesses.
+
+Your role is to help users discover information about:
+- Local events happening in Stillwater
+- Food and restaurant recommendations
+- Oklahoma State University (OSU) related news and games
+- Downtown Stillwater businesses and announcements
+- Community events and local news
+
+Be friendly, concise, and focused on helping users find relevant information from the recent Instagram posts."""
+        
+        # Build the full prompt
+        full_prompt = f"""{system_prompt}
+
+{posts_context}
+
+User question: {request.message}
+
+Please provide a helpful response based on the available information. If the information isn't in the recent posts, let the user know and offer general suggestions about how they might find what they're looking for."""
+        
+        # Generate response
+        generation_config = {
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 1024,
+        }
+        
+        response = model.generate_content(
+            full_prompt,
+            generation_config=generation_config
+        )
+        
+        # Extract response text
+        if hasattr(response, 'text') and response.text:
+            response_text = response.text.strip()
+        elif hasattr(response, 'candidates') and response.candidates:
+            response_text = response.candidates[0].content.parts[0].text.strip()
+        else:
+            raise Exception("Unexpected response format from Gemini API")
+        
+        return ChatResponse(response=response_text)
+        
+    except ValueError as e:
+        print(f"ValueError in chat endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Configuration error: {str(e)}")
+    except Exception as e:
+        print(f"Exception in chat endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error generating chat response: {str(e)}")

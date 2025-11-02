@@ -38,9 +38,8 @@ def summarize_instagram_post(description: str, max_length: int = 150) -> Optiona
     # Configure the Gemini API
     genai.configure(api_key=api_key)
     
-    # Initialize the model (using gemini-1.5-flash for faster, cost-effective generation)
-    # gemini-pro is also available but flash is better for this use case
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Initialize the model (using gemini-2.0-flash for reliable generation)
+    model = genai.GenerativeModel('gemini-2.0-flash')
     
     # Create a prompt for summarization
     prompt = f"""Summarize the following Instagram post description in approximately {max_length} characters or less. 
