@@ -8,29 +8,33 @@ interface AccountBadgesProps {
 
 export default function AccountBadges({ accounts, selectedAccount, onAccountClick }: AccountBadgesProps) {
   return (
-    <div className="bg-white rounded-lg shadow-card p-6 mb-8 animate-fade-in">
-      <p className="text-sm font-medium text-gray-700 mb-3">
-        Active Accounts: 
+    <div className="mb-10 animate-fade-in">
+      <div className="flex items-baseline gap-3 mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Filter Posts</h3>
         {selectedAccount && (
-          <span className="ml-2 text-xs text-gray-500">
-            (Click again to show all)
+          <span className="text-sm text-gray-500">
+            • Click <span className="font-medium text-orange-600">@{selectedAccount}</span> again to clear
           </span>
         )}
-      </p>
-      <div className="flex flex-wrap gap-2">
+      </div>
+      
+      <div className="flex flex-wrap gap-3">
         {accounts.map((account) => {
           const isSelected = selectedAccount === account;
           return (
             <button
               key={account}
               onClick={() => onAccountClick(account)}
-              className={`px-3 py-1 text-sm rounded-full transition-all cursor-pointer ${
+              className={`group relative px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-300 cursor-pointer ${
                 isSelected
-                  ? 'bg-secondary-600 text-white shadow-md scale-105'
-                  : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
+                  ? 'bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 text-white shadow-lg shadow-orange-500/40 bg-size-200 animate-gradient'
+                  : 'bg-white text-gray-700 shadow-md hover:shadow-xl hover:scale-105 border border-gray-100'
               }`}
             >
-              @{account}
+              <span className="relative z-10">@{account}</span>
+              {!isSelected && (
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-500 to-red-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+              )}
             </button>
           );
         })}
