@@ -2,11 +2,13 @@
 Router for text-to-speech endpoints.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from models.schemas import TTSRequest, VoicesResponse
 from services.tts_service import TTSService
-import traceback
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tts", tags=["tts"])
 
@@ -47,7 +49,7 @@ async def text_to_speech(request: TTSRequest):
         
     except ValueError as e:
         # Configuration error
-        print(f"ValueError in TTS endpoint: {str(e)}")
+        logger.error(f"ValueError in TTS endpoint: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Configuration error: {str(e)}"
@@ -55,8 +57,7 @@ async def text_to_speech(request: TTSRequest):
         
     except Exception as e:
         # Any other error
-        print(f"Exception in TTS endpoint: {str(e)}")
-        traceback.print_exc()
+        logger.error(f"Exception in TTS endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error generating speech: {str(e)}"
@@ -80,7 +81,7 @@ async def get_voices():
         return VoicesResponse(voices=voices)
         
     except Exception as e:
-        print(f"Error fetching voices: {str(e)}")
+        logger.error(f"Error fetching voices: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching voices: {str(e)}"

@@ -4,9 +4,12 @@ Configuration and settings management for Stillwater Pulse API.
 
 import os
 import json
+import logging
 from pathlib import Path
 from typing import Dict
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -19,8 +22,9 @@ class Settings:
     APP_TITLE = "Stillwater Pulse API"
     API_VERSION = "1.0.0"
     
-    # CORS Settings
-    CORS_ORIGINS = ["http://localhost:3000"]
+    # CORS Settings - Load from environment variable, default to localhost for development
+    _cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+    CORS_ORIGINS = [origin.strip() for origin in _cors_origins_env.split(",")]
     
     # API Keys
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -78,11 +82,11 @@ def load_instagram_feeds() -> Dict[str, str]:
                 with open(feeds_path, "r") as f:
                     return json.load(f)
             except Exception as e:
-                print(f"Error loading feeds from {feeds_path}: {e}")
+                logger.warning(f"Error loading feeds from {feeds_path}: {e}")
                 continue
     
     # Fallback to hardcoded feeds
-    print("Warning: feeds.json not found, using fallback feeds")
+    logger.warning("Warning: feeds.json not found, using fallback feeds")
     return {
         "okstate": "https://rss.app/feeds/NBgetWsYeAxjiJ7N.xml",
         "releaseradar": "https://rss.app/feeds/pwgOKTLwxlfH6MQV.xml",

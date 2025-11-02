@@ -2,6 +2,8 @@
 Stillwater Pulse API - Main application entry point.
 """
 
+import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,6 +15,13 @@ apply_cgi_fix()
 from config.settings import settings
 from routers import posts, chat, tts
 from models.schemas import HealthResponse
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO if os.getenv("LOG_LEVEL", "INFO") == "INFO" else logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------------------
 # FastAPI Application
@@ -65,19 +74,23 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Run on application startup."""
-    print(f"🚀 {settings.APP_TITLE} v{settings.API_VERSION}")
-    print(f"📍 Serving on http://127.0.0.1:8000")
-    print(f"📖 API docs: http://127.0.0.1:8000/docs")
+    host = os.getenv("HOST", "127.0.0.1")
+    port = os.getenv("PORT", "8000")
+    base_url = os.getenv("BASE_URL", f"http://{host}:{port}")
+    
+    logger.info(f"🚀 {settings.APP_TITLE} v{settings.API_VERSION}")
+    logger.info(f"📍 Serving on {base_url}")
+    logger.info(f"📖 API docs: {base_url}/docs")
     
     # Validate configuration
     try:
         settings.validate()
-        print("✅ Configuration validated")
+        logger.info("✅ Configuration validated")
     except ValueError as e:
-        print(f"⚠️  Configuration warning: {e}")
+        logger.warning(f"⚠️  Configuration warning: {e}")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on application shutdown."""
-    print("👋 Shutting down Stillwater Pulse API")
+    logger.info("👋 Shutting down Stillwater Pulse API")

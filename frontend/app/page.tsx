@@ -32,7 +32,9 @@ export default function Home() {
         setPosts(fetchedPosts);
         setAccounts(fetchedAccounts);
       } catch (err) {
-        console.error('Failed to load posts:', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to load posts:', err);
+        }
         setError('Failed to load Instagram posts.');
       } finally {
         setLoading(false);

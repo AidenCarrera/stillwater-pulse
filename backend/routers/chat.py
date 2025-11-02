@@ -2,10 +2,12 @@
 Router for AI chat endpoint.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException
 from models.schemas import ChatRequest, ChatResponse
 from services.gemini_service import GeminiService
-import traceback
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["chat"])
 
@@ -38,7 +40,7 @@ async def chat(request: ChatRequest):
         
     except ValueError as e:
         # Configuration error (missing API key, etc.)
-        print(f"ValueError in chat endpoint: {str(e)}")
+        logger.error(f"ValueError in chat endpoint: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Configuration error: {str(e)}"
@@ -46,8 +48,7 @@ async def chat(request: ChatRequest):
         
     except Exception as e:
         # Any other error
-        print(f"Exception in chat endpoint: {str(e)}")
-        traceback.print_exc()
+        logger.error(f"Exception in chat endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error generating chat response: {str(e)}"

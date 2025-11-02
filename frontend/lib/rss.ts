@@ -11,11 +11,18 @@ export interface Post {
 
 const accounts = Object.keys(feedsData);
 
-// Use environment variable for backend API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+// Get API URL from environment variable (required)
+const getApiUrl = (): string => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) {
+    throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+  }
+  return apiUrl;
+};
 
 export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
   const allPosts: Post[] = [];
+  const API_URL = getApiUrl();
 
   for (const account of accounts) {
     try {
@@ -24,7 +31,9 @@ export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
       });
 
       if (!res.ok) {
-        console.error(`Failed to fetch posts for ${account}: ${res.status} ${res.statusText}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Failed to fetch posts for ${account}: ${res.status} ${res.statusText}`);
+        }
         continue;
       }
 
@@ -41,7 +50,9 @@ export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
         });
       });
     } catch (error) {
-      console.error(`Error fetching posts for ${account}:`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`Error fetching posts for ${account}:`, error);
+      }
     }
   }
 

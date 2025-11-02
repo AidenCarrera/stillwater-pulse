@@ -123,17 +123,28 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     "Tell me about local business announcements"
   ];
 
+  // Get API URL from environment variable
+  const getApiUrl = () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+    }
+    return apiUrl;
+  };
+
   // Fetch available voices on mount
   useEffect(() => {
     const fetchVoices = async () => {
       setLoadingVoices(true);
       try {
-        const API_URL = 'http://127.0.0.1:8000';
+        const API_URL = getApiUrl();
         const response = await fetch(`${API_URL}/tts/voices`);
         
         if (response.ok) {
           const data = await response.json();
-           console.log('All available voices:', data.voices);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('All available voices:', data.voices);
+          }
           // ADD FILTERING HERE - Define which voices to show
           const allowedVoices = [
             "nPczCjzI2devNBz1zQrb", // Brian
@@ -152,7 +163,9 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
           setVoices(filteredVoices); // Use filtered instead of data.voices
         }
       } catch (error) {
-        console.error('Error fetching voices:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching voices:', error);
+        }
       } finally {
         setLoadingVoices(false);
       }
@@ -198,7 +211,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     setIsLoading(true);
 
     try {
-      const API_URL = 'http://127.0.0.1:8000';
+      const API_URL = getApiUrl();
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -223,7 +236,9 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error sending message:', error);
+      }
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -246,7 +261,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     setLoadingAudioId(messageId);
 
     try {
-      const API_URL = 'http://127.0.0.1:8000';
+      const API_URL = getApiUrl();
       const response = await fetch(`${API_URL}/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -272,7 +287,9 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       };
 
       audio.onerror = () => {
-        console.error('Error playing audio');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error playing audio');
+        }
         setPlayingMessageId(null);
         URL.revokeObjectURL(audioUrl);
       };
@@ -281,7 +298,9 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       setPlayingMessageId(messageId);
       
     } catch (error) {
-      console.error('Error playing audio:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error playing audio:', error);
+      }
       alert('Failed to generate audio. Make sure the backend is running and ELEVENLABS_API_KEY is set.');
     } finally {
       setLoadingAudioId(null);
