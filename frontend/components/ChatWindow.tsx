@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, X, MessageCircle, Sparkles, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { Send, X, MessageCircle, Sparkles, Volume2, VolumeX, Loader2, Mic } from 'lucide-react';
 import type { Post } from '@/lib/rss';
 
 interface Message {
@@ -15,45 +15,42 @@ interface ChatWindowProps {
   posts?: Post[];
 }
 
+interface Voice {
+  voice_id: string;
+  name: string;
+  category: string | null;
+}
+
 /**
  * Convert basic markdown formatting to React elements
  * Currently supports: **bold** and *italic*
  */
 function renderMarkdown(text: string): JSX.Element {
-  // Split by line breaks to preserve them
   const lines = text.split('\n');
 
   return (
     <>
       {lines.map((line, lineIndex) => {
-        // Convert **text** to bold and *text* to italic
         const parts: (string | JSX.Element)[] = [];
         let lastIndex = 0;
         let key = 0;
 
-        // Match **bold** first, then *italic*
-        // The (.+?) group captures the content inside the markers.
-        // We will trim this captured content later.
         const boldRegex = /\*\*(.+?)\*\*/g;
         const italicRegex = /\*(.+?)\*/g;
 
         let match;
         const matches: Array<{ start: number; end: number; type: 'bold' | 'italic'; text: string }> = [];
 
-        // Find all bold matches
         while ((match = boldRegex.exec(line)) !== null) {
           matches.push({
             start: match.index,
             end: match.index + match[0].length,
             type: 'bold',
-            // FIX: Trim whitespace from the captured content (match[1])
             text: match[1].trim() 
           });
         }
 
-        // Find all italic matches (that aren't part of bold)
         while ((match = italicRegex.exec(line)) !== null) {
-          // Skip if this is part of a bold match
           const isInBold = matches.some(m =>
             match!.index >= m.start && match!.index < m.end
           );
@@ -62,26 +59,20 @@ function renderMarkdown(text: string): JSX.Element {
               start: match.index,
               end: match.index + match[0].length,
               type: 'italic',
-              // FIX: Trim whitespace from the captured content (match[1])
               text: match[1].trim()
             });
           }
         }
 
-        // Sort matches by position
         matches.sort((a, b) => a.start - b.start);
 
-        // If no matches found, just render the line as-is
         if (matches.length === 0) {
           parts.push(line);
         } else {
-          // Build the parts array from matches
           for (const m of matches) {
-            // Add text before match
             if (m.start > lastIndex) {
               parts.push(line.substring(lastIndex, m.start));
             }
-            // Add formatted text
             if (m.type === 'bold') {
               parts.push(<strong key={key++}>{m.text}</strong>);
             } else {
@@ -90,7 +81,6 @@ function renderMarkdown(text: string): JSX.Element {
             lastIndex = m.end;
           }
 
-          // Add remaining text after last match
           if (lastIndex < line.length) {
             parts.push(line.substring(lastIndex));
           }
@@ -114,6 +104,13 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  
+  // Voice selection state
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>("nPczCjzI2devNBz1zQrb"); // Brian voice default
+  const [loadingVoices, setLoadingVoices] = useState(false);
+  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -125,6 +122,44 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     "What's new in downtown Stillwater?",
     "Tell me about local business announcements"
   ];
+
+  // Fetch available voices on mount
+  useEffect(() => {
+    const fetchVoices = async () => {
+      setLoadingVoices(true);
+      try {
+        const API_URL = 'http://127.0.0.1:8000';
+        const response = await fetch(`${API_URL}/tts/voices`);
+        
+        if (response.ok) {
+          const data = await response.json();
+           console.log('All available voices:', data.voices);
+          // ADD FILTERING HERE - Define which voices to show
+          const allowedVoices = [
+            "nPczCjzI2devNBz1zQrb", // Brian
+            "XrExE9yKIg1WjnnlVkGX", // Matilda
+            "ruirxsoakN0GWmGNIo04", // John Morgan
+            "2tTjAGX0n5ajDmazDcWk", // Ezekiel
+            "1BfrkuYXmEwp8AWqSLWk"  // Declan
+            // Add more voice IDs here
+          ];
+
+          // Filter to only allowed voices
+          const filteredVoices = data.voices.filter((voice: Voice) => 
+            allowedVoices.includes(voice.voice_id)
+          );
+          
+          setVoices(filteredVoices); // Use filtered instead of data.voices
+        }
+      } catch (error) {
+        console.error('Error fetching voices:', error);
+      } finally {
+        setLoadingVoices(false);
+      }
+    };
+
+    fetchVoices();
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -163,7 +198,6 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     setIsLoading(true);
 
     try {
-      // Call the backend API
       const API_URL = 'http://127.0.0.1:8000';
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
@@ -203,15 +237,12 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   };
 
   const handlePlayAudio = async (messageId: string, text: string) => {
-    // If already playing this message, stop it
     if (playingMessageId === messageId) {
       stopAudio();
       return;
     }
 
-    // Stop any currently playing audio
     stopAudio();
-
     setLoadingAudioId(messageId);
 
     try {
@@ -221,7 +252,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           text: text,
-          voice_id: "wBXNqKUATyqu0RtYt25i" // Adam voice (tiktok)
+          voice_id: selectedVoice // Use selected voice
         })
       });
 
@@ -229,11 +260,9 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Get audio blob
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
 
-      // Create and play audio
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
       
@@ -280,6 +309,11 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     inputRef.current?.focus();
   };
 
+  const getSelectedVoiceName = () => {
+    const voice = voices.find(v => v.voice_id === selectedVoice);
+    return voice ? voice.name : 'Select Voice';
+  };
+
   return (
     <>
       {/* Floating toggle button when chat is closed */}
@@ -313,6 +347,48 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
             >
               <X className="w-6 h-6" />
             </button>
+          </div>
+
+          {/* Voice selector bar */}
+          <div className="bg-white border-b border-gray-200 p-3">
+            <div className="flex items-center gap-2">
+              <Mic className="w-4 h-4 text-gray-600" />
+              <span className="text-xs font-medium text-gray-600">Voice:</span>
+              <div className="relative flex-1">
+                <button
+                  onClick={() => setShowVoiceSelector(!showVoiceSelector)}
+                  disabled={loadingVoices || voices.length === 0}
+                  className="w-full text-left px-3 py-1.5 text-sm bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingVoices ? 'Loading voices...' : getSelectedVoiceName()}
+                </button>
+                
+                {/* Dropdown menu */}
+                {showVoiceSelector && voices.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto z-10">
+                    {voices.map((voice) => (
+                      <button
+                        key={voice.voice_id}
+                        onClick={() => {
+                          setSelectedVoice(voice.voice_id);
+                          setShowVoiceSelector(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-primary-50 transition-colors ${
+                          selectedVoice === voice.voice_id ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{voice.name}</span>
+                          {voice.category && (
+                            <span className="text-xs text-gray-500">{voice.category}</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Messages area */}
