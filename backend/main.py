@@ -62,7 +62,7 @@ app.add_middleware(
 # Predefined Instagram RSS feeds
 def load_feeds() -> Dict[str, str]:
     """Load Instagram RSS feeds from feeds.json."""
-    feeds_path = Path(__file__).parent / "frontend" / "data" / "feeds.json"
+    feeds_path = Path(__file__).parent.parent / "frontend" / "data" / "feeds.json"
     try:
         with open(feeds_path, "r") as f:
             return json.load(f)
