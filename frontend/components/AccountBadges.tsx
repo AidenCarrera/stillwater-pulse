@@ -2,25 +2,39 @@
 
 interface AccountBadgesProps {
   accounts: string[];
-  selectedAccount: string | null;
+  selectedAccounts: string[];
   onAccountClick: (account: string) => void;
+  onClearFilters: () => void;
 }
 
-export default function AccountBadges({ accounts, selectedAccount, onAccountClick }: AccountBadgesProps) {
+export default function AccountBadges({ 
+  accounts, 
+  selectedAccounts, 
+  onAccountClick,
+  onClearFilters 
+}: AccountBadgesProps) {
   return (
     <div className="mb-10 animate-fade-in">
-      <div className="flex items-baseline gap-3 mb-4">
+      <div className="flex items-baseline gap-3 mb-4 flex-wrap">
         <h3 className="text-lg font-semibold text-gray-800">Filter Posts</h3>
-        {selectedAccount && (
-          <span className="text-sm text-gray-500">
-            • Click <span className="font-medium text-orange-600">@{selectedAccount}</span> again to clear
-          </span>
+        {selectedAccounts.length > 0 && (
+          <>
+            <span className="text-sm text-gray-500">
+              • {selectedAccounts.length} {selectedAccounts.length === 1 ? 'account' : 'accounts'} selected
+            </span>
+            <button
+              onClick={onClearFilters}
+              className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
+            >
+              Clear all filters
+            </button>
+          </>
         )}
       </div>
       
       <div className="flex flex-wrap gap-3">
         {accounts.map((account) => {
-          const isSelected = selectedAccount === account;
+          const isSelected = selectedAccounts.includes(account);
           return (
             <button
               key={account}

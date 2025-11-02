@@ -6,10 +6,10 @@ import type { Post } from '@/lib/rss';
 
 interface PostGridProps {
   posts: Post[];
-  selectedAccount?: string | null;
+  selectedAccounts?: string[];
 }
 
-export default function PostGrid({ posts, selectedAccount }: PostGridProps) {
+export default function PostGrid({ posts, selectedAccounts = [] }: PostGridProps) {
   // Use custom hook to handle Instagram embeds
   useInstagramEmbed([posts]);
 
@@ -17,8 +17,8 @@ export default function PostGrid({ posts, selectedAccount }: PostGridProps) {
     return (
       <div className="text-center py-12 bg-white rounded-lg shadow-card">
         <p className="text-gray-600">
-          {selectedAccount 
-            ? `No posts available from @${selectedAccount}`
+          {selectedAccounts.length > 0
+            ? `No posts available from the selected ${selectedAccounts.length === 1 ? 'account' : 'accounts'}`
             : 'No posts available at this time'
           }
         </p>
@@ -30,9 +30,13 @@ export default function PostGrid({ posts, selectedAccount }: PostGridProps) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-gray-800">
-          {selectedAccount ? (
+          {selectedAccounts.length > 0 ? (
             <>
-              Posts from <span className="text-secondary-600">@{selectedAccount}</span> ({posts.length})
+              Posts from {selectedAccounts.length === 1 ? (
+                <span className="text-orange-600">@{selectedAccounts[0]}</span>
+              ) : (
+                <span className="text-orange-600">{selectedAccounts.length} accounts</span>
+              )} ({posts.length})
             </>
           ) : (
             <>Latest Posts ({posts.length})</>

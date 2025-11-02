@@ -17,7 +17,7 @@ export default function Home() {
   const [accounts, setAccounts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
   // Use Instagram embed hook
   useInstagramEmbed([posts]);
@@ -41,14 +41,23 @@ export default function Home() {
     loadData();
   }, []);
 
-  // Filter posts based on selected account
-  const filteredPosts = selectedAccount
-    ? posts.filter(post => post.account === selectedAccount)
+  // Filter posts based on selected accounts
+  const filteredPosts = selectedAccounts.length > 0
+    ? posts.filter(post => selectedAccounts.includes(post.account))
     : posts;
 
-  // Handle account selection
+  // Handle account selection (toggle)
   const handleAccountClick = (account: string) => {
-    setSelectedAccount(selectedAccount === account ? null : account);
+    setSelectedAccounts(prev => 
+      prev.includes(account)
+        ? prev.filter(a => a !== account) // Remove if already selected
+        : [...prev, account] // Add if not selected
+    );
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSelectedAccounts([]);
   };
 
   return (
@@ -67,12 +76,13 @@ export default function Home() {
             {/* Account Badges */}
             <AccountBadges 
               accounts={accounts} 
-              selectedAccount={selectedAccount}
+              selectedAccounts={selectedAccounts}
               onAccountClick={handleAccountClick}
+              onClearFilters={handleClearFilters}
             />
 
             {/* Posts Grid */}
-            <PostGrid posts={filteredPosts} selectedAccount={selectedAccount} />
+            <PostGrid posts={filteredPosts} selectedAccounts={selectedAccounts} />
           </>
         )}
       </main>
