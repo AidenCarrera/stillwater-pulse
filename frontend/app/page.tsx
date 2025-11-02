@@ -10,12 +10,14 @@ import PostGrid from '@/components/PostGrid';
 import ChatWindow from '@/components/ChatWindow';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
+import type { Post } from '@/lib/rss';
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [accounts, setAccounts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
   // Use Instagram embed hook
   useInstagramEmbed([posts]);
@@ -39,6 +41,25 @@ export default function Home() {
     loadData();
   }, []);
 
+  // Filter posts based on selected accounts
+  const filteredPosts = selectedAccounts.length > 0
+    ? posts.filter(post => selectedAccounts.includes(post.account))
+    : posts;
+
+  // Handle account selection (toggle)
+  const handleAccountClick = (account: string) => {
+    setSelectedAccounts(prev => 
+      prev.includes(account)
+        ? prev.filter(a => a !== account) // Remove if already selected
+        : [...prev, account] // Add if not selected
+    );
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSelectedAccounts([]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -53,10 +74,15 @@ export default function Home() {
         {!loading && !error && (
           <>
             {/* Account Badges */}
-            <AccountBadges accounts={accounts} />
+            <AccountBadges 
+              accounts={accounts} 
+              selectedAccounts={selectedAccounts}
+              onAccountClick={handleAccountClick}
+              onClearFilters={handleClearFilters}
+            />
 
             {/* Posts Grid */}
-            <PostGrid posts={posts} />
+            <PostGrid posts={filteredPosts} selectedAccounts={selectedAccounts} />
           </>
         )}
       </main>
