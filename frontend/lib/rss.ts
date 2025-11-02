@@ -31,9 +31,6 @@ export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
       });
 
       if (!res.ok) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`Failed to fetch posts for ${account}: ${res.status} ${res.statusText}`);
-        }
         continue;
       }
 
@@ -50,9 +47,7 @@ export async function fetchPostsFromAllAccounts(): Promise<Post[]> {
         });
       });
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`Error fetching posts for ${account}:`, error);
-      }
+      // Error fetching posts for account - continue with other accounts
     }
   }
 
