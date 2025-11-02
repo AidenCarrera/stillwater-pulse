@@ -32,14 +32,14 @@ export default function AccountBadges({
         )}
       </div>
       
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         {accounts.map((account) => {
           const isSelected = selectedAccounts.includes(account);
           return (
             <button
               key={account}
               onClick={() => onAccountClick(account)}
-              className={`group relative px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-300 cursor-pointer ${
+              className={`group relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap ${
                 isSelected
                   ? 'bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 text-white shadow-lg shadow-orange-500/40 bg-size-200 animate-gradient'
                   : 'bg-white text-gray-700 shadow-md hover:shadow-xl hover:scale-105 border border-gray-100'
