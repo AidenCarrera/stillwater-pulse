@@ -25,3 +25,4 @@ Thumbs.db
 # Optional: Python cache
 *.pyc
 .env
+*.tsbuildinfo

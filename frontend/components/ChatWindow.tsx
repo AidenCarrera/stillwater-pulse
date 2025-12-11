@@ -1,12 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, X, MessageCircle, Sparkles, Volume2, VolumeX, Loader2, Mic } from 'lucide-react';
-import type { Post } from '@/lib/rss';
+import { useState, useRef, useEffect, type JSX } from "react";
+import {
+  Send,
+  X,
+  MessageCircle,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Loader2,
+  Mic,
+} from "lucide-react";
+import type { Post } from "@/lib/rss";
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
 }
@@ -26,7 +35,7 @@ interface Voice {
  * Currently supports: **bold** and *italic*
  */
 function renderMarkdown(text: string): JSX.Element {
-  const lines = text.split('\n');
+  const lines = text.split("\n");
 
   return (
     <>
@@ -39,27 +48,32 @@ function renderMarkdown(text: string): JSX.Element {
         const italicRegex = /\*(.+?)\*/g;
 
         let match;
-        const matches: Array<{ start: number; end: number; type: 'bold' | 'italic'; text: string }> = [];
+        const matches: Array<{
+          start: number;
+          end: number;
+          type: "bold" | "italic";
+          text: string;
+        }> = [];
 
         while ((match = boldRegex.exec(line)) !== null) {
           matches.push({
             start: match.index,
             end: match.index + match[0].length,
-            type: 'bold',
-            text: match[1].trim() 
+            type: "bold",
+            text: match[1].trim(),
           });
         }
 
         while ((match = italicRegex.exec(line)) !== null) {
-          const isInBold = matches.some(m =>
-            match!.index >= m.start && match!.index < m.end
+          const isInBold = matches.some(
+            (m) => match!.index >= m.start && match!.index < m.end
           );
           if (!isInBold) {
             matches.push({
               start: match.index,
               end: match.index + match[0].length,
-              type: 'italic',
-              text: match[1].trim()
+              type: "italic",
+              text: match[1].trim(),
             });
           }
         }
@@ -73,7 +87,7 @@ function renderMarkdown(text: string): JSX.Element {
             if (m.start > lastIndex) {
               parts.push(line.substring(lastIndex, m.start));
             }
-            if (m.type === 'bold') {
+            if (m.type === "bold") {
               parts.push(<strong key={key++}>{m.text}</strong>);
             } else {
               parts.push(<em key={key++}>{m.text}</em>);
@@ -100,17 +114,19 @@ function renderMarkdown(text: string): JSX.Element {
 export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
-  
+
   // Voice selection state
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string>("nPczCjzI2devNBz1zQrb"); // Brian voice default
+  const [selectedVoice, setSelectedVoice] = useState<string>(
+    "nPczCjzI2devNBz1zQrb"
+  ); // Brian voice default
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -120,14 +136,14 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     "Show me recent food and restaurant posts",
     "Any OSU game day updates?",
     "What's new in downtown Stillwater?",
-    "Tell me about local business announcements"
+    "Tell me about local business announcements",
   ];
 
   // Get API URL from environment variable
   const getApiUrl = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
-      throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      throw new Error("NEXT_PUBLIC_API_URL environment variable is not set");
     }
     return apiUrl;
   };
@@ -139,7 +155,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       try {
         const API_URL = getApiUrl();
         const response = await fetch(`${API_URL}/tts/voices`);
-        
+
         if (response.ok) {
           const data = await response.json();
           // ADD FILTERING HERE - Define which voices to show
@@ -148,15 +164,15 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
             "XrExE9yKIg1WjnnlVkGX", // Matilda
             "ruirxsoakN0GWmGNIo04", // John Morgan
             "2tTjAGX0n5ajDmazDcWk", // Ezekiel
-            "1BfrkuYXmEwp8AWqSLWk"  // Declan
+            "1BfrkuYXmEwp8AWqSLWk", // Declan
             // Add more voice IDs here
           ];
 
           // Filter to only allowed voices
-          const filteredVoices = data.voices.filter((voice: Voice) => 
+          const filteredVoices = data.voices.filter((voice: Voice) =>
             allowedVoices.includes(voice.voice_id)
           );
-          
+
           setVoices(filteredVoices); // Use filtered instead of data.voices
         }
       } catch (error) {
@@ -171,7 +187,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Focus input when chat opens
@@ -196,24 +212,24 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
+      role: "user",
       content: input.trim(),
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setIsLoading(true);
 
     try {
       const API_URL = getApiUrl();
       const response = await fetch(`${API_URL}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           message: userMessage.content,
-          posts: posts
-        })
+          posts: posts,
+        }),
       });
 
       if (!response.ok) {
@@ -221,23 +237,24 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       }
 
       const data = await response.json();
-      
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
+        role: "assistant",
         content: data.response,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error connecting to the AI. Please make sure the backend is running.',
-        timestamp: new Date()
+        role: "assistant",
+        content:
+          "Sorry, I encountered an error connecting to the AI. Please make sure the backend is running.",
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -255,12 +272,12 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
     try {
       const API_URL = getApiUrl();
       const response = await fetch(`${API_URL}/tts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           text: text,
-          voice_id: selectedVoice // Use selected voice
-        })
+          voice_id: selectedVoice, // Use selected voice
+        }),
       });
 
       if (!response.ok) {
@@ -272,7 +289,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      
+
       audio.onended = () => {
         setPlayingMessageId(null);
         URL.revokeObjectURL(audioUrl);
@@ -285,9 +302,8 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
 
       await audio.play();
       setPlayingMessageId(messageId);
-      
     } catch (error) {
-      alert('Failed to generate audio. Please try again later.');
+      alert("Failed to generate audio. Please try again later.");
     } finally {
       setLoadingAudioId(null);
     }
@@ -303,7 +319,7 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -315,8 +331,8 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
   };
 
   const getSelectedVoiceName = () => {
-    const voice = voices.find(v => v.voice_id === selectedVoice);
-    return voice ? voice.name : 'Select Voice';
+    const voice = voices.find((v) => v.voice_id === selectedVoice);
+    return voice ? voice.name : "Select Voice";
   };
 
   return (
@@ -337,12 +353,14 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
       {isOpen && (
         <div className="fixed right-0 top-0 h-screen w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-slide-in-right">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white p-4 flex items-center justify-between">
+          <div className="bg-linear-to-r from-primary-600 to-primary-500 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
               <div>
                 <h2 className="font-semibold text-lg">Stillwater AI</h2>
-                <p className="text-xs text-primary-100">Ask about local posts</p>
+                <p className="text-xs text-primary-100">
+                  Ask about local posts
+                </p>
               </div>
             </div>
             <button
@@ -365,9 +383,9 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                   disabled={loadingVoices || voices.length === 0}
                   className="w-full text-left px-3 py-1.5 text-sm bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loadingVoices ? 'Loading voices...' : getSelectedVoiceName()}
+                  {loadingVoices ? "Loading voices..." : getSelectedVoiceName()}
                 </button>
-                
+
                 {/* Dropdown menu */}
                 {showVoiceSelector && voices.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto z-10">
@@ -379,13 +397,17 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                           setShowVoiceSelector(false);
                         }}
                         className={`w-full text-left px-3 py-2 text-sm hover:bg-primary-50 transition-colors ${
-                          selectedVoice === voice.voice_id ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-700'
+                          selectedVoice === voice.voice_id
+                            ? "bg-primary-100 text-primary-700 font-medium"
+                            : "text-gray-700"
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <span>{voice.name}</span>
                           {voice.category && (
-                            <span className="text-xs text-gray-500">{voice.category}</span>
+                            <span className="text-xs text-gray-500">
+                              {voice.category}
+                            </span>
                           )}
                         </div>
                       </button>
@@ -405,9 +427,10 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                   Ask me anything!
                 </h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  I can help you discover what's happening in Stillwater based on recent Instagram posts.
+                  I can help you discover what's happening in Stillwater based
+                  on recent Instagram posts.
                 </p>
-                
+
                 {/* Suggested prompts */}
                 <div className="w-full space-y-2">
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
@@ -429,38 +452,52 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                    className={`flex ${
+                      message.role === "user" ? "justify-end" : "justify-start"
+                    } animate-fade-in`}
                   >
                     <div
                       className={`max-w-[85%] rounded-lg p-3 ${
-                        message.role === 'user'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-white border border-gray-200 text-gray-800'
+                        message.role === "user"
+                          ? "bg-primary-600 text-white"
+                          : "bg-white border border-gray-200 text-gray-800"
                       }`}
                     >
                       <div className="flex items-start gap-2">
                         <div className="flex-1">
-                          {message.role === 'assistant' ? (
+                          {message.role === "assistant" ? (
                             <div className="text-sm whitespace-pre-wrap">
                               {renderMarkdown(message.content)}
                             </div>
                           ) : (
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <p className="text-sm whitespace-pre-wrap">
+                              {message.content}
+                            </p>
                           )}
                         </div>
-                        
+
                         {/* Audio button for assistant messages */}
-                        {message.role === 'assistant' && (
+                        {message.role === "assistant" && (
                           <button
-                            onClick={() => handlePlayAudio(message.id, message.content)}
+                            onClick={() =>
+                              handlePlayAudio(message.id, message.content)
+                            }
                             disabled={loadingAudioId === message.id}
-                            className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
+                            className={`shrink-0 p-1.5 rounded-full transition-colors ${
                               playingMessageId === message.id
-                                ? 'bg-primary-100 text-primary-600 hover:bg-primary-200'
-                                : 'hover:bg-gray-100 text-gray-600'
+                                ? "bg-primary-100 text-primary-600 hover:bg-primary-200"
+                                : "hover:bg-gray-100 text-gray-600"
                             }`}
-                            aria-label={playingMessageId === message.id ? 'Stop audio' : 'Play audio'}
-                            title={playingMessageId === message.id ? 'Stop audio' : 'Play audio'}
+                            aria-label={
+                              playingMessageId === message.id
+                                ? "Stop audio"
+                                : "Play audio"
+                            }
+                            title={
+                              playingMessageId === message.id
+                                ? "Stop audio"
+                                : "Play audio"
+                            }
                           >
                             {loadingAudioId === message.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -472,13 +509,17 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                           </button>
                         )}
                       </div>
-                      
-                      <p className={`text-xs mt-1 ${
-                        message.role === 'user' ? 'text-primary-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.role === "user"
+                            ? "text-primary-100"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {message.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </p>
                     </div>
@@ -488,9 +529,18 @@ export default function ChatWindow({ posts = [] }: ChatWindowProps) {
                   <div className="flex justify-start animate-fade-in">
                     <div className="bg-white border border-gray-200 rounded-lg p-3">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        ></div>
                       </div>
                     </div>
                   </div>
